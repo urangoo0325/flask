@@ -64,4 +64,24 @@ def show_blogs():
     return render_template('blog.html', posts=formatted_posts)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+
+@app.route('/me', methods=['GET', 'POST'])
+def about_me():
+    message = ""
+    if request.method == 'POST':
+        title = request.form['top']
+        post_content = request.form['middle']
+        post_type = request.form['bottom']
+
+        conn = sqlite3.connect('titanic.sqlite')
+        cursor = conn.cursor()
+
+        # Ensure the post table exists (you might want to modify or remove this part)
+        cursor.execute('''CREATE TABLE IF NOT EXISTS middle (id INTEGER PRIMARY KEY, title TEXT, post TEXT, type TEXT)''')
+
+        # Insert the submitted form data into the post table
+        cursor.execute("INSERT INTO post (top, middler, bottom) VALUES (?, ?, ?)", (title, post_content, post_type))
+        conn.commit()
+        conn.close()
+
+        message = "DONE"
