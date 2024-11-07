@@ -7,7 +7,7 @@ app = Flask(__name__)
 @app.route('/second')
 def hello_world():
     return render_template('index.html', message='Hello, World!')
-
+# hello hi
 @app.route('/form', methods=['GET', 'POST'])
 def render_form():
     message = ''
