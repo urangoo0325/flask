@@ -48,23 +48,6 @@ def submit_post():
 
     return render_template('form.html', message=message)
 
-@app.route('/blogs')
-def show_blogs():
-    conn = sqlite3.connect('titanic.sqlite')
-    cursor = conn.cursor()
-
-    # Fetch all posts from the database
-    cursor.execute("SELECT title, post, type FROM post")
-    posts = cursor.fetchall()
-    conn.close()
-
-    # Format posts for rendering
-    formatted_posts = [{"title": row[0], "content": row[1], "type": row[2]} for row in posts]
-
-    return render_template('blog.html', posts=formatted_posts)
-
-if __name__ == '__main__':
-
 @app.route('/me', methods=['GET', 'POST'])
 def about_me():
     message = ""
@@ -85,3 +68,20 @@ def about_me():
         conn.close()
 
         message = "DONE"
+@app.route('/blogs')
+def show_blogs():
+    conn = sqlite3.connect('titanic.sqlite')
+    cursor = conn.cursor()
+
+    # Fetch all posts from the database
+    cursor.execute("SELECT title, post, type FROM post")
+    posts = cursor.fetchall()
+    conn.close()
+
+    # Format posts for rendering
+    formatted_posts = [{"title": row[0], "content": row[1], "type": row[2]} for row in posts]
+
+    return render_template('blog.html', posts=formatted_posts)
+
+if __name__ == '__main__':
+    app.run(debug=True)
