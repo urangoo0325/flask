@@ -23,7 +23,7 @@ def render_form():
 
 @app.route('/')
 def about():
-    return render_template('about.html',my_hobby="I like reading", my_text="Hello my name is Urangoo")
+    return render_template('about.html',my_hobby="drawing", my_text="Hello my name is Urangoo")
 
 @app.route('/posts', methods=['GET', 'POST'])
 def submit_post():

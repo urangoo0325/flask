@@ -33,3 +33,28 @@
         {% endif %}
     </body>
 </html>
+import sqlite3
+import hashlib
+
+CREATE TABLE IF NOT EXISTS contacts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    email TEXT,
+    phone TEXT)
+
+
+conn = sqlite3.connect('titanic.sqlite')
+cursor = conn.cursor()
+
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS contacts (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL,
+    message TEXT NOT NULL,
+    db_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP)
+''')
+
+# Commit changes and close the connection
+conn.commit()
+conn.close()
