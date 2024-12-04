@@ -200,5 +200,12 @@ def logout():
     flash("Logged out successfully.")
     return redirect(url_for('login'))
 
+
+
+# Route to log out
+@app.route('/pokemon')
+def pokemon_display():
+    return "Hi it is pokemon app!"
+
 if __name__ == '__main__':
     app.run(debug=True)
