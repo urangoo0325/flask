@@ -5,24 +5,52 @@
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h1>Contact Submissions</h1>
-    <table border="1">
-        <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Message</th>
-            <th>Submitted At</th>
-        </tr>
-        {% for contact in contacts %}
-        <tr>
-            <td>{{ contact[0] }}</td>
-            <td>{{ contact[1] }}</td>
-            <td>{{ contact[2] }}</td>
-            <td>{{ contact[3] }}</td>
-            <td>{{ contact[4] }}</td>
-        </tr>
-        {% endfor %}
-    </table>
+    <h1>Database Admin Panel</h1>
+    
+    <!-- Dropdown to select a table -->
+    <form method="POST" action="{{ url_for('admin') }}">
+        <label for="table_name">Select a Table:</label>
+        <select name="table_name" id="table_name">
+            {% for table in tables %}
+            <option value="{{ table }}" {% if table == selected_table %}selected{% endif %}>
+                {{ table }}
+            </option>
+            {% endfor %}
+        </select>
+        <button type="submit">View Table</button>
+    </form>
+    
+    {% if selected_table %}
+    <h2>Data for Table: {{ selected_table }}</h2>
+    <form method="POST" action="{{ url_for('update_table', table_name=selected_table) }}">
+        <table border="1">
+            <thead>
+                <tr>
+                    {% for column in table_columns %}
+                    <th>{{ column }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row_index, row in enumerate(table_data) %}
+                <tr>
+                    {% for col_index, cell in enumerate(row) %}
+                    <td>
+                        <input 
+                            type="text" 
+                            name="data[{{ row_index }}][{{ table_columns[col_index] }}]" 
+                            value="{{ cell }}" 
+                            {% if table_columns[col_index] == 'id' %}readonly{% endif %}  <!-- Make ID read-only -->
+                        />
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+            
+        </table>
+        <button type="submit">Save Changes</button>
+    </form>
+    {% endif %}
 </body>
 </html>

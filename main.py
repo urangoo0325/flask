@@ -4,6 +4,7 @@ import pandas as pd
 import sqlite3
 import os
 import requests
+from functools import wraps
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # Needed for session management
@@ -157,18 +158,6 @@ def submit_contact():
     # Redirect to the admin page
     return redirect('/admin')
 
-# Route to display admin page
-@app.route('/admin')
-def admin():
-    # Retrieve all contact records
-    conn = sqlite3.connect(db_path, check_same_thread=False)
-    cursor = conn.cursor()
-    cursor.execute('SELECT * FROM contacts')
-    contacts = cursor.fetchall()
-    conn.close()
-
-    # Render the admin page with contact data
-    return render_template('admin.html', contacts=contacts)
 
 # Route for login
 @app.route('/login', methods=['GET', 'POST'])
@@ -188,7 +177,7 @@ def login():
         if user:
             session['username'] = username
             flash("Login successful!")
-            return redirect(url_for('show_blogs'))
+            return redirect(url_for('admin'))
         else:
             flash("Invalid username or password.")
     
@@ -275,6 +264,128 @@ def calculator():
             result = "Please enter valid numbers."
     
     return render_template("calculator.html", result=result)
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # Check if the user is logged in
+        if 'username' not in session:
+            flash("You need to log in first.", "error")
+            return redirect(url_for('login'))
+
+        # Connect to the database and check user's role
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+
+        try:
+            # Join users and roles tables to get the user's role
+            cursor.execute('''
+                SELECT roles.role_name
+                FROM users
+                JOIN roles ON users.role_id = roles.id
+                WHERE users.username = ? AND roles.id = 1
+            ''', (session['username'],))
+            user_role = cursor.fetchone()
+        finally:
+            conn.close()
+
+        # If no admin role is found, deny access
+        if user_role is None:
+            flash("Access denied. Admins only.", "error")
+            return redirect(url_for('login'))
+
+        # Allow access if the user is an admin
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+@app.route('/admin', methods=['GET', 'POST'])
+@admin_required
+def admin():
+    conn = sqlite3.connect(db_path, check_same_thread=False)
+    cursor = conn.cursor()
+    
+    # Fetch all table names in the database
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+    tables = [row[0] for row in cursor.fetchall()]
+    
+    selected_table = None
+    table_data = []
+    table_columns = []
+    
+    if request.method == 'POST':
+        # Get the selected table from the dropdown
+        selected_table = request.form.get('table_name')
+        if selected_table:
+            # Fetch data and column names for the selected table
+            cursor.execute(f"PRAGMA table_info({selected_table})")
+            table_columns = [info[1] for info in cursor.fetchall()]
+            
+            cursor.execute(f"SELECT * FROM {selected_table}")
+            table_data = cursor.fetchall()
+    
+    conn.close()
+    
+    # Pass `enumerate` to the template
+    return render_template(
+        'admin.html', 
+        tables=tables, 
+        selected_table=selected_table, 
+        table_data=table_data, 
+        table_columns=table_columns,
+        enumerate=enumerate  # Pass `enumerate`
+    )
+
+@app.route('/update_table/<table_name>', methods=['POST'])
+def update_table(table_name):
+    # Extract form data
+    form_data = request.form.to_dict()  # Flattened dictionary of form data
+    if not form_data:
+        flash("No data submitted.", "error")
+        return redirect(url_for('admin'))
+
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    try:
+        # Group data by row
+        rows = {}
+        for key, value in form_data.items():
+            # Example key format: data[0][column_name]
+            parts = key.split('[')
+            row_index = parts[1][:-1]  # Extract row index
+            column_name = parts[2][:-1]  # Extract column name
+            if row_index not in rows:
+                rows[row_index] = {}
+            rows[row_index][column_name] = value
+
+        # Iterate through rows and update the database
+        for row_index, row_data in rows.items():
+            if 'id' not in row_data:
+                flash(f"Missing ID for row {row_index}. Skipping.", "error")
+                continue
+            
+            row_id = row_data.pop('id')  # Remove ID from data to update
+            update_query = f"""
+                UPDATE {table_name}
+                SET {', '.join([f"{col} = ?" for col in row_data.keys()])}
+                WHERE id = ?
+            """
+            params = list(row_data.values()) + [row_id]
+
+            # Execute the update
+            cursor.execute(update_query, params)
+
+        conn.commit()
+        flash("Table updated successfully!", "success")
+    except Exception as e:
+        conn.rollback()
+        flash(f"Error updating table: {e}", "error")
+    finally:
+        conn.close()
+
+    return redirect(url_for('admin'))
+
 
 
 if __name__ == '__main__':

@@ -1,30 +1,44 @@
+# Run this code once to set up the users table
 import sqlite3
 import hashlib
-import os
 
-# Get the base directory of the current script
-basedir = os.path.abspath(os.path.dirname(__file__))
-
-db_path = os.path.join(basedir, 'db', 'titanic.sqlite')
-conn = sqlite3.connect(db_path)
+conn = sqlite3.connect('db/titanic.sqlite')
 cursor = conn.cursor()
 
-# Create the users table if it doesn't exist
 cursor.execute('''CREATE TABLE IF NOT EXISTS users (
                     id INTEGER PRIMARY KEY,
                     username TEXT UNIQUE NOT NULL,
                     password TEXT NOT NULL)''')
 
+# cursor.execute('''
+#     ALTER TABLE users ADD COLUMN role_id INTEGER DEFAULT 2
+# ''')
+
+cursor.execute('''CREATE TABLE IF NOT EXISTS me
+                (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT,
+                    age INTEGER,
+                    hobby TEXT,
+                    project TEXT)''')
+print("execution done")
 
 
-# Create the contacts table if it doesn't exist
-cursor.execute('''CREATE TABLE IF NOT EXISTS contacts (
-                    id INTEGER PRIMARY KEY,
-                    name TEXT NOT NULL,
-                    email TEXT  NOT NULL,
-                    message TEXT NOT NULL,
-                    current_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
+# Create the roles table
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS roles (
+        id INTEGER PRIMARY KEY,
+        role_name TEXT UNIQUE NOT NULL
+    )
+''')
 
-# Commit changes and close the connection
+# Insert default roles (admin and user)
+cursor.execute('''
+    INSERT OR IGNORE INTO roles (id, role_name) VALUES
+    (1, 'admin'),
+    (2, 'user')
+''')
+
+
+
 conn.commit()
 conn.close()
